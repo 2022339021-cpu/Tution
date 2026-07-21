@@ -58,4 +58,11 @@ function jumpToday(){selectedDate=new Date();render();}
 function render(){document.getElementById('dateLabel').textContent=fmtLong(selectedDate);const a=getAttendance(),l=document.getElementById('list');if(!students.length){l.innerHTML='<div class="empty">No students yet. Add a name above.</div>';return;}l.innerHTML=students.map(s=>`<div class="row"><div class="name">${s.name}<span class="count">(${counts[s.id]||0})</span></div><button class="tick ${a[s.id]?'on':''}" onclick="toggleMark('${s.id}')">${a[s.id]?'✓':''}</button></div>`).join('');}
 render();
 </script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/Tution/service-worker.js");
+  });
+}
+</script>
 </body></html>
