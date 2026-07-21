@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tuition Ledger</title>
+<style>
+  body { font-family: -apple-system, Arial, sans-serif; background:#f6f2e9; margin:0; padding:20px; color:#1f2b3d; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  .eyebrow { font-size:11px; letter-spacing:1px; color:#a6362c; font-weight:600; }
+  .datebar { display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid #d9d0bd; border-radius:10px; padding:10px; margin:16px 0 6px; }
+  .datebar button { border:none; background:none; font-size:22px; padding:6px 14px; cursor:pointer; }
+  .datebar span { font-weight:600; font-size:14px; }
+  .addrow { display:flex; gap:8px; margin:16px 0; }
+  .addrow input { flex:1; padding:12px; border-radius:8px; border:1px solid #d9d0bd; font-size:15px; }
+  .addrow button { padding:0 18px; border-radius:8px; border:none; background:#1f2b3d; color:#fff; font-weight:600; }
+  .row { display:flex; align-items:center; gap:10px; padding:12px 2px; border-bottom:1px solid #d9d0bd; }
+  .row .name { flex:1; font-size:16px; }
+  .row .count { color:#a6362c; font-weight:600; margin-left:4px; }
+  .tick { width:38px; height:38px; border-radius:8px; border:2px solid #d9d0bd; background:#fff; font-size:20px; cursor:pointer; }
+  .tick.on { background:#2f6f4f; border-color:#2f6f4f; color:#fff; font-weight:700; }
+  .empty { text-align:center; color:#8a7e66; padding:30px 0; font-size:14px; }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">ATTENDANCE REGISTER</div>
+<h1>Tuition Ledger</h1>
+
+<div class="datebar">
+  <button onclick="changeDay(-1)">‹</button>
+  <span id="dateLabel"></span>
+  <button onclick="changeDay(1)">›</button>
+</div>
+<button onclick="jumpToday()" style="display:block;margin:0 auto 14px;background:none;border:none;color:#a6362c;font-size:12px;text-decoration:underline;">Jump to today</button>
+
+<div class="addrow">
+  <input id="nameInput" placeholder="Add a student name" onkeydown="if(event.key==='Enter')addStudent()">
+  <button onclick="addStudent()">Add</button>
+</div>
+
+<div id="list"></div>
+
+<script>
+let students = JSON.parse(localStorage.getItem('students') || '[]'); // [{id,name}]
+let counts = JSON.parse(localStorage.getItem('counts') || '{}');     // {id: number}
+let selectedDate = new Date();
+
+function dateKey(d){ return d.toISOString().slice(0,10); }
+function fmtLong(d){ return d.toLocaleDateString(undefined,{weekday:'long', day:'numeric', month:'long', year:'numeric'}); }
+
+function getAttendance(){
+  return JSON.parse(localStorage.getItem('att_' + dateKey(selectedDate)) || '{}');
+}
+function saveAttendance(att){
+  localStorage.setItem('att_' + dateKey(selectedDate), JSON.stringify(att));
+}
+function saveStudents(){
+  localStorage.setItem('students', JSON.stringify(students));
+  localStorage.setItem('counts', JSON.stringify(counts));
+}
+
+function addStudent(){
+  const input = document.getElementById('nameInput');
+  const name = input.value.trim();
+  if(!name) return;
+  const id = 's_' + Date.now();
+  students.push({id, name});
+  counts[id] = 0;
+  input.value = '';
+  saveStudents();
+  render();
+}
+
+function toggleMark(id){
+  const att = getAttendance();
+  if(att[id]){
+    delete att[id];
+    counts[id] = (counts[id]||0) - 1;
+  } else {
+    att[id] = true;
+    counts[id] = (counts[id]||0) + 1;
+  }
+  saveAttendance(att);
+  saveStudents();
+  render();
+}
+
+function changeDay(n){
+  selectedDate.setDate(selectedDate.getDate() + n);
+  render();
+}
+function jumpToday(){
+  selectedDate = new Date();
+  render();
+}
+
+function render(){
+  document.getElementById('dateLabel').textContent = fmtLong(selectedDate);
+  const att = getAttendance();
+  const list = document.getElementById('list');
+  if(students.length === 0){
+    list.innerHTML = '<div class="empty">No students yet. Add a name above.</div>';
+    return;
+  }
+  list.innerHTML = students.map(s => {
+    const present = !!att[s.id];
+    const count = counts[s.id] || 0;
+    return `
+      <div class="row">
+        <div class="name">${s.name}<span class="count">(${count})</span></div>
+        <button class="tick ${present?'on':''}" onclick="toggleMark('${s.id}')">${present?'✓':''}</button>
+      </div>`;
+  }).join('');
+}
+
+render();
+</script>
+</body>
+</html>
